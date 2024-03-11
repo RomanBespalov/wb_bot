@@ -18,10 +18,13 @@ router = Router()
 @router.message(CommandStart())
 async def command_start_handler(message: types.Message) -> None:
     await message.answer(f"Привет, {hbold(message.from_user.full_name)}!\n"
-                         f"Выбери пункт меню, чтобы начать",
+                         f"Выбери пункт меню, чтобы начать\n\n"
+                         f"Команды:\n"
+                         f"Стартовая команда - /start\n"
+                         f"Для отмены текщуего действия - /cancel\n",
                          reply_markup=menu_choice_keyboard(MENU),
                          )
     await message.answer(
-        text="Также можешь подписаться на рассылку👇",
+        text="Также ты можешь подписаться на рассылку👇",
         reply_markup=inline_keyboard().as_markup(),
     )

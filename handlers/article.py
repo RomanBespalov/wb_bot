@@ -65,16 +65,22 @@ async def get_info_goods(message: Message, state: FSMContext):
 @router.message(F.text.in_(MENU[2]))
 async def get_data_db(message: Message, state: FSMContext):
     query_results = session.query(QueryHistory).all()[-5:]
-    for query in query_results:
-        formatted_time = query.query_time.strftime("%Y-%m-%d %H:%M")
+    if query_results:
+        for query in query_results:
+            formatted_time = query.query_time.strftime("%Y-%m-%d %H:%M")
+            await message.answer(
+                text=(
+                    f"{hbold('id пользователя')} - {query.user_id}\n"
+                    f"{hbold('время запроса')} - {formatted_time}\n"
+                    f"{hbold('артикул товара')} - {query.article}\n"
+                ),
+                reply_markup=inline_keyboard().as_markup(),
+            )
+    else:
         await message.answer(
-            text=(
-                f"{hbold('id пользователя')} - {query.user_id}\n"
-                f"{hbold('время запроса')} - {formatted_time}\n"
-                f"{hbold('артикул товара')} - {query.article}\n"
-            ),
-            reply_markup=inline_keyboard().as_markup(),
-        )
+                text=("Пока нет данных в БД"),
+                reply_markup=inline_keyboard().as_markup(),
+            )
 
 
 from tasks import periodic_task
@@ -84,25 +90,38 @@ from tasks import periodic_task
 async def send_notification(callback: CallbackQuery):
     user_id = callback.from_user.id
     user_query_history = session.query(QueryHistory).filter(QueryHistory.user_id == user_id).order_by(QueryHistory.query_time.desc()).first()
-    article = user_query_history.article
-    print("da")
-    # Отправляем задачу Celery
-    periodic_task.apply_async(args=[user_id, article])
-    # Отправляем ответ пользователю
-    user_query_history.subscribed = True
-    session.commit()
-    print(user_query_history.subscribed)
-    await callback.message.answer('Задача Celery запущена! Вы подписались на рассылку')
+    if user_query_history and user_query_history.subscribed is False:
+        article = user_query_history.article
+        periodic_task.apply_async(args=[user_id, article])
+        user_query_history.subscribed = True
+        session.commit()
+        session.close()
+        await callback.message.answer('Вы подписались на рассылку!')
+    elif user_query_history is None:
+        await callback.message.answer(
+            text="Вас нет в базе данных. После первого запроса по артикулу, вы появитесь в БД",
+            reply_markup=inline_keyboard().as_markup(),
+        )
+    else:
+        await callback.message.answer(
+            text="Вы уже подписаны на рассылку.",
+            reply_markup=inline_keyboard().as_markup(),
+        )
 
 
 @router.message(F.text.in_(MENU[1]))
 async def unsubscribe(message: Message, state: FSMContext):
     user_id = message.from_user.id
     user_query_history = session.query(QueryHistory).filter(QueryHistory.user_id == user_id).order_by(QueryHistory.query_time.desc()).first()
-    user_query_history.subscribed = False
-    session.commit()
-    print(user_query_history.subscribed)
-    await message.answer(
-        text="Вы отписались от рассылки",
-        reply_markup=inline_keyboard().as_markup(),
-    )
+    if user_query_history and user_query_history.subscribed is True:
+        user_query_history.subscribed = False
+        session.commit()
+        await message.answer(
+            text="Вы отписались от рассылки!",
+            reply_markup=inline_keyboard().as_markup(),
+        )
+    else:
+        await message.answer(
+            text="Вы не подписаны на рассылку.",
+            reply_markup=inline_keyboard().as_markup(),
+        )

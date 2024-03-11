@@ -10,9 +10,9 @@ class QueryHistory(Base):
     __tablename__ = 'query_history'
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(Integer, nullable=True)
     query_time = Column(DateTime, default=datetime.now(pytz.timezone('Asia/Yerevan')))
-    article = Column(String, nullable=False)
+    article = Column(String, nullable=True)
     subscribed = Column(Boolean, default=False)
 
 

@@ -38,8 +38,8 @@ async def cancel(message: Message, state: FSMContext):
 @router.message(Article.choosing_article)
 async def get_info_goods(message: Message, state: FSMContext):
     article = message.text.lower()
-    goods = get_product_info(article)
-    if goods == 'Ошибка артикула':
+    goods = await get_product_info(article)
+    if goods == 'Ошибка в обработке данных':
         await message.answer(
             text="Такого артикула не существует.\nПопробуй еще раз",
             reply_markup=inline_keyboard().as_markup(),

@@ -3,9 +3,7 @@ import logging
 import asyncio
 import sys
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
+sys.path.append('/Users/romanbespalov/Dev/wb_bot')
 app = Celery(
     "tasks",
     broker="redis://localhost:6379/0",
@@ -14,11 +12,9 @@ app = Celery(
 app.autodiscover_tasks()
 
 
-sys.path.append('/Users/romanbespalov/Dev/wb_bot')
-
-
-def schedule_periodic_task(user_id, article, schedule_delay=300):
+async def schedule_periodic_task(user_id, article, schedule_delay=300):
     app.send_task("tasks.periodic_task", args=(user_id, article), countdown=schedule_delay)
+    logging.info(f'Запустилась перидическая задача. Каждые {int(schedule_delay/60)} минут отправляется сообщение.')
 
 
 @app.task
@@ -48,4 +44,6 @@ async def send_notification_message(user_id, article):
             text=goods_string,
             reply_markup=inline_keyboard().as_markup(),
         )
-        schedule_periodic_task(user_id, article)
+        await schedule_periodic_task(user_id, article)
+        logging.info(f'Отправлено уведомление пользователю {user_id} о товаре {article}')
+    session.close()

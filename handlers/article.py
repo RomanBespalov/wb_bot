@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -97,6 +99,7 @@ async def send_notification(callback: CallbackQuery):
         session.commit()
         session.close()
         await callback.message.answer('Вы подписались на рассылку!')
+        logging.info(f'Пользователь {user_id} подписался на рассылку')
     elif user_query_history is None:
         await callback.message.answer(
             text="Вас нет в базе данных. После первого запроса по артикулу, вы появитесь в БД",
@@ -120,6 +123,7 @@ async def unsubscribe(message: Message, state: FSMContext):
             text="Вы отписались от рассылки!",
             reply_markup=inline_keyboard().as_markup(),
         )
+        logging.info(f'Пользователь {user_id} отписался от рассылки')
     else:
         await message.answer(
             text="Вы не подписаны на рассылку.",
